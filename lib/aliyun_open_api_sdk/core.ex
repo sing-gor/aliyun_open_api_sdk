@@ -16,16 +16,11 @@ defmodule AliyunOpenApiSdk.Core do
   path = ""
   method = "POST"
   body = %{
-    "AppName" => "demo",
-    "Description" => "demo",
-    "Action" => "CreateApp",
-    "Tag" => [%{"test1" => "test1"},%{"test2" => "test2"}]
-  }
-  body = %{
   "Action" => "CreateApp",
   "AppName" => "demo",
   "Description" => "demo",
   "Tag" => [%{"test1" => "test1"}, %{"test2" => "test2"}],
+  "Tag2" => [%{"test1" => "test1"}, %{"test2" => ""}]
   }
   AliyunOpenApiSdk.Core.aliyun_api_request(method, path, body, req_data)
 
@@ -87,6 +82,7 @@ defmodule AliyunOpenApiSdk.Core do
     |> Map.put("Timestamp", Calendar.Strftime.strftime!(now_time, "%Y-%m-%dT%H:%M:%SZ"))
     |> Map.put("SignatureMethod", "HMAC-SHA1")
     |> Map.put("SignatureVersion", "1.0")
+    |> handle_array
   end
 
   def gen_body_sign_str(method, body, req_data) do
@@ -107,6 +103,7 @@ defmodule AliyunOpenApiSdk.Core do
   end
 
   def gen_body_sign_str2(method, body, _) do
+    IO.inspect(body)
     body
     |> URI.encode_query(:rfc3986)
     |> URI.encode_www_form()
@@ -115,14 +112,40 @@ defmodule AliyunOpenApiSdk.Core do
   end
 
   def handle_array(body) do
-    Map.filter(body, fn {_key, val} -> is_list(val) end)
-    |> Enum.map(fn {k, v} -> handle_array_key_value(k, v) end)
+    array_body = Map.filter(body, fn {_key, val} -> is_list(val) end)
+    |> Enum.map(fn {k, v} -> handle_array(k, v) end)
     |> List.flatten()
+    |> merge_dict(%{})
+    |> Map.filter(fn {_, val} -> String.length(val) != 0 end)
 
+    str_body = Map.filter(body, fn {_key, val} -> is_bitstring(val) end)
+    Map.merge(str_body,array_body)
   end
 
-  def handle_array_key_value(key, value) do
-    Enum.with_index(value,fn element, index -> {"#{key}.#{index+1}", Map.to_list(element),key} end)
+  def handle_array(key, value) do
+    handle_array_key_value(key, value, 0)
+  end
 
+  def handle_array_key_value(_, [], _), do: []
+
+  def handle_array_key_value(key, [item | tail], index) do
+    {k, v} =
+      item
+      |> Map.to_list()
+      |> List.first()
+
+    new_dict = %{
+      "#{key}.#{index + 1}.Key" => k,
+      "#{key}.#{index + 1}.Value" => v
+    }
+
+    [new_dict | handle_array_key_value(key, tail, index + 1)]
+  end
+
+  def merge_dict([], data), do: data
+
+  def merge_dict([item | tail], data) do
+    new_data = Map.merge(item, data)
+    merge_dict(tail, new_data)
   end
 end
