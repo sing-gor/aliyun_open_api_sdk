@@ -12,6 +12,7 @@ It can simple call to all of Alibaba Cloud product api
 req_data = %{
   "PRODUCT" => "apigateway",
   "REGIONS"=> "cn-shenzhen",
+  "Version" => "2016-07-14",
   "ALIYUN_ACCESS_KEY" => "<YOUR ALIYUN_ACCESS_KEY>",
   "ALI_YUN_ACCESS_SECRET"=> "<YOUR ALI_YUN_ACCESS_SECRET>",
 }
@@ -31,6 +32,7 @@ AliyunOpenApiSdk.Core.aliyun_api_request(method, path, body, req_data)
 req_data = %{
   "PRODUCT" => "apigateway",
   "REGIONS"=> "cn-shenzhen",
+  "Version" => "2016-07-14",
   "ALIYUN_ACCESS_KEY" => "<YOUR ALIYUN_ACCESS_KEY>",
   "ALI_YUN_ACCESS_SECRET"=> "<YOUR ALI_YUN_ACCESS_SECRET>",
 }

@@ -7,6 +7,7 @@ defmodule AliyunOpenApiSdk.Core do
   }
     req_data = %{
     "PRODUCT" => "apigateway",
+    "Version" => "2016-07-14",
     "REGIONS"=> "cn-shenzhen",
     "ALIYUN_ACCESS_KEY" => "<YOUR ALIYUN_ACCESS_KEY>",
     "ALI_YUN_ACCESS_SECRET"=> "<YOUR ALI_YUN_ACCESS_SECRET>",
@@ -75,7 +76,7 @@ defmodule AliyunOpenApiSdk.Core do
   def gen_body(body, now_time, req_data) do
     # now_time = Calendar.DateTime.now!()
     body
-    |> Map.put("Version", "2016-07-14")
+    |> Map.put("Version", body["Version"])
     |> Map.put("Format", "JSON")
     |> Map.put("AccessKeyId", req_data["ALIYUN_ACCESS_KEY"])
     |> Map.put("SignatureNonce", UUID.uuid4())
