@@ -76,7 +76,7 @@ defmodule AliyunOpenApiSdk.Core do
   def gen_body(body, now_time, req_data) do
     # now_time = Calendar.DateTime.now!()
     body
-    |> Map.put("Version", body["Version"])
+    |> Map.put("Version", req_data["Version"])
     |> Map.put("Format", "JSON")
     |> Map.put("AccessKeyId", req_data["ALIYUN_ACCESS_KEY"])
     |> Map.put("SignatureNonce", UUID.uuid4())
