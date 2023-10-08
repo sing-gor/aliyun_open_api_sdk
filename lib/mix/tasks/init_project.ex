@@ -29,7 +29,6 @@ defmodule Mix.Tasks.InitProject do
   end
 
   def handle_each(each) do
-
     version = Enum.join(each["versions"], ",")
 
     "| #{each["code"]} | #{each["name"]} | #{each["defaultVersion"]} | #{each["shortName"]} | #{each["defaultVersion"]}  | #{version} |\n"
