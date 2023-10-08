@@ -24,3 +24,8 @@ aliyun_open_api_sdk-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Ignore config
+/config/dev.exs
+/config/test.exs
+/config/pord.exs

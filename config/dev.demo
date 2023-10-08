@@ -1,0 +1,6 @@
+import Config
+
+config :aliyun_open_api_sdk, AliyunOpenApiSdk.Core,
+  regions: "<YOUR ALI_YUN_REGIONS>"
+  aliyun_access_key: "<YOUR ALIYUN_ACCESS_KEY>",
+  aliyun_access_secret: "<YOUR ALI_YUN_ACCESS_SECRET>"

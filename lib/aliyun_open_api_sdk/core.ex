@@ -1,35 +1,26 @@
 defmodule AliyunOpenApiSdk.Core do
   @moduledoc """
-  path = ""
-  method = "GET"
-  body = %{
-    "Action" => "DescribeApiGroups",
-  }
-    req_data = %{
-    "PRODUCT" => "apigateway",
-    "Version" => "2016-07-14",
+  alias AliyunOpenApiSdk.CloudAPI.DescribeApi
+  req_data = %{
     "REGIONS"=> "cn-shenzhen",
     "ALIYUN_ACCESS_KEY" => "<YOUR ALIYUN_ACCESS_KEY>",
     "ALI_YUN_ACCESS_SECRET"=> "<YOUR ALI_YUN_ACCESS_SECRET>",
   }
-  AliyunOpenApiSdk.Core.aliyun_api_request(method, path, body, req_data)
 
-  path = ""
-  method = "POST"
-  body = %{
-  "Action" => "CreateApp",
-  "AppName" => "demo",
-  "Description" => "demo",
-  "Tag" => [%{"test1" => "test1"}, %{"test2" => "test2"}],
-  "Tag2" => [%{"test1" => "test1"}, %{"test2" => ""}]
-  }
-  AliyunOpenApiSdk.Core.aliyun_api_request(method, path, body, req_data)
+  {:ok, data} = CreateApp.changeset(%{AppName: "Sing8", Description: "test",Tag: [%{"teat1" => "teat1"}]})
+  AliyunOpenApiSdk.Core2.aliyun_api_request(data)
+
+  AliyunOpenApiSdk.Core2.aliyun_api_request(data, req_data)
 
   """
 
-  def client(req_data, now_time) do
-    header = [{"Date", Calendar.DateTime.Format.httpdate(now_time)}]
-    host = "https://#{req_data["PRODUCT"]}.#{req_data["REGIONS"]}.aliyuncs.com"
+  def client(body, req_data, now_time, endpoint_regional) do
+    header = [
+      {"Date", Calendar.DateTime.Format.httpdate(now_time)},
+      {"Content-Type", "application/x-www-form-urlencoded"}
+    ]
+
+    host = gen_host(body, req_data, endpoint_regional)
 
     middleware = [
       {Tesla.Middleware.BaseUrl, host},
@@ -41,14 +32,38 @@ defmodule AliyunOpenApiSdk.Core do
     Tesla.client(middleware)
   end
 
-  def aliyun_api_request(method, path, body, req_data) do
+  def gen_host(body, req_data, true) do
+    "https://#{body["PRODUCT"]}.#{req_data["REGIONS"]}.aliyuncs.com"
+  end
+
+  def gen_host(body, _, false) do
+    "https://#{body["PRODUCT"]}.aliyuncs.com"
+  end
+
+  def aliyun_api_request(data) do
+    req_data = %{
+      "REGIONS" => Application.get_env(:aliyun_open_api_sdk, AliyunOpenApiSdk)[:regions],
+      "ALIYUN_ACCESS_KEY" =>
+        Application.get_env(:aliyun_open_api_sdk, AliyunOpenApiSdk)[:aliyun_access_key],
+      "ALI_YUN_ACCESS_SECRET" =>
+        Application.get_env(:aliyun_open_api_sdk, AliyunOpenApiSdk)[:aliyun_access_secret]
+    }
+
+    aliyun_api_request(data, req_data)
+  end
+
+  def aliyun_api_request(
+        %{body: body, method: method},
+        req_data
+      ) do
     now_time = Calendar.DateTime.now_utc()
+    endpoint_regional = body["EndpointRegional"]
     body = gen_body(body, now_time, req_data)
-    gen_body_sign_str2(method, body, req_data)
+    gen_body_sign_encode(method, body, req_data)
     sign_body = Map.put(body, "Signature", gen_body_sign_str(method, body, req_data))
 
-    client(req_data, now_time)
-    |> api_request(String.upcase(method), path, sign_body, req_data)
+    client(body, req_data, now_time, endpoint_regional)
+    |> api_request(String.upcase(method), "", sign_body, req_data)
     |> case do
       {:ok, %{status: 200, body: body, headers: headers}} ->
         {:ok, %{:body => body, :headers => headers}}
@@ -63,6 +78,7 @@ defmodule AliyunOpenApiSdk.Core do
 
   defp api_request(client, "POST", path, body, _) do
     Tesla.post(client, path, body)
+    # Tesla.post(client, "?#{URI.encode_query(body)}", body)
   end
 
   defp api_request(client, "GET", _path, body, _) do
@@ -74,10 +90,8 @@ defmodule AliyunOpenApiSdk.Core do
   end
 
   def gen_body(body, now_time, req_data) do
-    # now_time = Calendar.DateTime.now!()
     body
-    |> Map.put("Version", req_data["Version"])
-    |> Map.put("Format", "JSON")
+    |> Map.put("Format", "json")
     |> Map.put("AccessKeyId", req_data["ALIYUN_ACCESS_KEY"])
     |> Map.put("SignatureNonce", UUID.uuid4())
     |> Map.put("Timestamp", Calendar.Strftime.strftime!(now_time, "%Y-%m-%dT%H:%M:%SZ"))
@@ -95,32 +109,27 @@ defmodule AliyunOpenApiSdk.Core do
     |> Base.encode64()
   end
 
-  def body_item_handle(key, value) do
-    "\&#{key}=#{URI.encode_www_form(value)}"
-  end
-
   def sign_body(data, method) do
     "#{String.upcase(method)}\&%2F\&" <> data
   end
 
-  def gen_body_sign_str2(method, body, _) do
-    IO.inspect(body)
+  def gen_body_sign_encode(method, body, _) do
     body
     |> URI.encode_query(:rfc3986)
     |> URI.encode_www_form()
     |> sign_body(method)
-    |> IO.puts()
   end
 
   def handle_array(body) do
-    array_body = Map.filter(body, fn {_key, val} -> is_list(val) end)
-    |> Enum.map(fn {k, v} -> handle_array(k, v) end)
-    |> List.flatten()
-    |> merge_dict(%{})
-    |> Map.filter(fn {_, val} -> String.length(val) != 0 end)
+    array_body =
+      Map.filter(body, fn {_key, val} -> is_list(val) end)
+      |> Enum.map(fn {k, v} -> handle_array(k, v) end)
+      |> List.flatten()
+      |> merge_dict(%{})
+      |> Map.filter(fn {_, val} -> String.length(val) != 0 end)
 
     str_body = Map.filter(body, fn {_key, val} -> is_bitstring(val) end)
-    Map.merge(str_body,array_body)
+    Map.merge(str_body, array_body)
   end
 
   def handle_array(key, value) do

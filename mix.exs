@@ -25,7 +25,9 @@ defmodule AliyunOpenApiSdk.MixProject do
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
       {:tesla, "~> 1.5"},
       {:calendar, "~> 1.0.0"},
-      {:elixir_uuid, "~> 1.2"}
+      {:elixir_uuid, "~> 1.2"},
+      {:ecto, "~> 3.10"},
+      {:jason, "~> 1.2"}
     ]
   end
 end
